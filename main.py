@@ -13,6 +13,8 @@ def checkpoint(DEBUG, msg="", col=""):
             final_msg += msg
         else:
             final_msg = Fore.Green + "Checkpoint!"
+        
+        final_msg += "\n"
         print(final_msg)
 
 def error_message(condition, msg=""):
@@ -50,16 +52,45 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
 
     # Initializing spin chain with field and coupling parameters
     gamma_chain = rnd.uniform(0, gamma_0, N)
-    J_chain = rnd.uniform(size=N)
+    J_chain     = rnd.uniform(size=N-1)
 
-    h_chain = rnd.uniform(-h_0/2, h_0/2, N)
+    h_chain     = rnd.uniform(-h_0/2, h_0/2, N)
     mask = rnd.choice([True, False], size=N, replace=True, p=[zeta, 1-zeta])
     h_chain[mask == False] = 0
 
-    # Iterating decimation as long as 
+    kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
+
+    # Iterating decimation as long as OMEGA > thresh
     it = 1; error = 1e9; N_s = N
     while error > thresh:
-        print(f"Iteration {it}: \t error: {error} \t Number of sites: {N_s}")
+        print(f"Iteration: {it} \t error: {error} \t Number of sites: {N_s}\n")
         it += 1
+
+        parameters = np.array([J_chain, kappa_chain])
+        max_param_idx = np.argmax(parameters)
+        OMEGA = parameters[max_param_idx]
+
+        checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t spin site: {max_param_idx if max_param_idx<N else max_param_idx-N}")
+        
+        if max_param_idx < N: # maximum parameter is a coupling
+            gamma_tilde = gamma_chain[max_param_idx]*gamma_chain[max_param_idx+1]/J_chain[max_param_idx]
+            h_tilde     = h_chain[max_param_idx] + h_chain[max_param_idx+1]
+
+            # Decimation step
+            J_chain = np.delete(J_chain, max_param_idx)
+
+            gamma_chain = np.delete(gamma_chain, max_param_idx+1)
+            gamma_chain[max_param_idx] = gamma_tilde
+
+            h_chain = np.delete(h_chain, max_param_idx+1)
+            h_chain[max_param_idx] = h_tilde
+
+            kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
+
+        else:                 # maximum parameter is a field
+            
+            # Decimation step
+            
+
 
 
