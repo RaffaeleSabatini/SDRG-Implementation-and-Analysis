@@ -58,39 +58,63 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
     mask = rnd.choice([True, False], size=N, replace=True, p=[zeta, 1-zeta])
     h_chain[mask == False] = 0
 
-    kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
-
     # Iterating decimation as long as OMEGA > thresh
     it = 1; error = 1e9; N_s = N
-    while error > thresh:
-        print(f"Iteration: {it} \t error: {error} \t Number of sites: {N_s}\n")
+    while error > thresh or it < 100:
+        print(f"{"-"*60}\nIteration: {it} \t error: {error} \t Number of sites: {N_s}\n")
         it += 1
 
-        parameters = np.array([J_chain, kappa_chain])
-        max_param_idx = np.argmax(parameters)
-        OMEGA = parameters[max_param_idx]
+        kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
 
-        checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t spin site: {max_param_idx if max_param_idx<N else max_param_idx-N}")
+        parameters = np.concatenate([kappa_chain, J_chain])
+        max_idx = np.argmax(parameters)
+        OMEGA = parameters[max_idx]
+
+        checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t spin site: {max_idx if max_idx<N else max_idx-N}")
+        error = OMEGA
         
-        if max_param_idx < N: # maximum parameter is a coupling
-            gamma_tilde = gamma_chain[max_param_idx]*gamma_chain[max_param_idx+1]/J_chain[max_param_idx]
-            h_tilde     = h_chain[max_param_idx] + h_chain[max_param_idx+1]
+        if max_idx < N: # maximum parameter is a coupling
+            gamma_tilde = gamma_chain[max_idx]*gamma_chain[max_idx+1]/J_chain[max_idx]
+            h_tilde     = h_chain[max_idx] + h_chain[max_idx+1]
 
             # Decimation step
-            J_chain = np.delete(J_chain, max_param_idx)
+            J_chain = np.delete(J_chain, max_idx)
 
-            gamma_chain = np.delete(gamma_chain, max_param_idx+1)
-            gamma_chain[max_param_idx] = gamma_tilde
+            gamma_chain = np.delete(gamma_chain, max_idx+1)
+            gamma_chain[max_idx] = gamma_tilde
 
-            h_chain = np.delete(h_chain, max_param_idx+1)
-            h_chain[max_param_idx] = h_tilde
+            h_chain = np.delete(h_chain, max_idx+1)
+            h_chain[max_idx] = h_tilde
 
-            kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
+        else:  # maximum parameter is a field
+            max_idx = max_idx-N
 
-        else:                 # maximum parameter is a field
-            
+            J_tilde       = J_chain[max_idx]*J_chain[max_idx-1]/gamma_chain[max_idx] * (gamma_chain[max_idx]/gamma_chain[max_idx])**2
+            h_tilde_plus  = h_chain[max_idx+1] + J_chain[max_idx]*h_chain[max_idx]/gamma_chain[max_idx]
+            h_tilde_minus = h_chain[max_idx-1] + J_chain[max_idx-1]*h_chain[max_idx]/gamma_chain[max_idx]
+
             # Decimation step
-            
+            J_chain = np.delete(J_chain, max_idx)
+            J_chain[max_idx-1] = J_tilde
+
+            gamma_chain = np.delete(gamma_chain, max_idx)
+
+            h_chain[max_idx-1] = h_tilde_minus; h_chain[max_idx+1] = h_tilde_plus
+            h_chain = np.delete(h_chain, max_idx)
+
+    return OMEGA, h_chain, gamma_chain, J_chain
 
 
+def main():
+    # Global variables
+    N      = 100
+    ZETA   = 0.2
+    GAMMA0 = 10
+    H0     = 1
+    THRESH = 0.01
+    DEBUG  = True
 
+    Omega, h_c, gamma_c, J_c = RandomIsing_SDRG(N, ZETA, GAMMA0, H0, THRESH, DEBUG)
+
+if __name__ == "__main__":
+    main()
