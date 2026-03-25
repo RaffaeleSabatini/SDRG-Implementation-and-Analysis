@@ -1,29 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import scipy.linalg as la
 import numpy.random as rnd
-from colorama import Fore
-
-#------------------------------------------------------------------------------------------------
-
-def checkpoint(DEBUG, msg="", col=""):
-    if DEBUG:
-        if msg != "":
-            final_msg = Fore.GREEN + "Checkpoint: " + Fore.RESET
-            final_msg += msg
-        else:
-            final_msg = Fore.Green + "Checkpoint!" + Fore.RESET
-        
-        final_msg += "\n"
-        print(final_msg)
-
-def error_message(condition, msg=""):
-    if condition:
-        if msg != "":
-            error = Fore.RED + f"Error: {msg}"
-        else:
-            error = Fore.RED + "Error!"
-        print(error)
+from debugging import *
 
 #------------------------------------------------------------------------------------------------
 
@@ -50,6 +27,10 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
     
     checkpoint(DEBUG, msg="INIIALIZING STRONG DISORDER RG FOR ISING CHAIN")
 
+    # Output values
+    decimated_sites = 0
+    sites_decimation_fraction = np.zeros(shape=N)
+
     # Initializing spin chain with field and coupling parameters
     gamma_chain = rnd.uniform(0, gamma_0, N)
     J_chain     = rnd.uniform(size=N-1)
@@ -59,13 +40,14 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
     h_chain[mask == False] = 0
 
     # Iterating decimation as long as OMEGA > thresh
-    it = 0; error = 1e9; N_s = N
-    while (error > thresh) and (it < 100) and (N_s > 2):
+    it = 0; OMEGA = 1e9; N_s = N
+
+    while (OMEGA > thresh) and (N_s > 2):
         it += 1
         N_s = h_chain.shape[0] # Number of sites
 
         error_message(h_chain.shape[0] != gamma_chain.shape[0], "Size mismatch between h-chain and gamma-chain")
-        print(f"{"="*90}\n\nIteration: {it} \t error: {error} \t Number of sites: {N_s}\n")
+        print(f"{"="*90}\n\nIteration: {it} \t Ω: {OMEGA} \t Number of sites: {N_s}\n")
         
         kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
         parameters = np.concatenate([2*J_chain, kappa_chain])
@@ -75,7 +57,6 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
         checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t maximum index: {(max_idx, "[COUPLING]") if max_idx <= N_s-2 else (max_idx-(N_s-1), "[FIELD]")}")
         checkpoint(DEBUG, msg=f"Coupling chain: {J_chain}")
         checkpoint(DEBUG, msg=f"kappa chain: {kappa_chain}")
-        error = OMEGA
         
         if max_idx <= N_s-2: # maximum parameter is a coupling
             gamma_tilde = gamma_chain[max_idx]*gamma_chain[max_idx+1]/J_chain[max_idx]
@@ -91,6 +72,9 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
             h_chain[max_idx] = h_tilde
 
         else:            # maximum parameter is a field
+            decimated_sites += 1
+            sites_decimation_fraction[it] = decimated_sites/it
+
             max_idx = max_idx-(N_s-1)
 
             if max_idx <= N_s-2 and max_idx >= 1: 
@@ -134,19 +118,4 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
     print(f"{"="*90}\n")
     print(f"SDRG algorithm converged with Ω = {OMEGA}.")
 
-    return OMEGA, h_chain, gamma_chain, J_chain
-
-
-def main():
-    # Global variables
-    N      = 100
-    ZETA   = 0.2
-    GAMMA0 = 10
-    H0     = 1
-    THRESH = 0.01
-    DEBUG  = True
-
-    Omega, h_c, gamma_c, J_c = RandomIsing_SDRG(N, ZETA, GAMMA0, H0, THRESH, DEBUG)
-
-if __name__ == "__main__":
-    main()
+    return OMEGA, sites_decimation_fraction
