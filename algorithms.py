@@ -35,7 +35,7 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
 
     # Initializing spin chain with field and coupling parameters
     gamma_chain = rnd.uniform(0, gamma_0, N)
-    J_chain     = rnd.uniform(size=N-1)
+    J_chain     = rnd.uniform(size=N)
 
     h_chain     = rnd.uniform(-h_0/2, h_0/2, N)
     mask = rnd.choice([True, False], size=N, replace=True, p=[zeta, 1-zeta])
@@ -49,6 +49,7 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
         N_s = h_chain.shape[0] # Number of sites
 
         error_message(h_chain.shape[0] != gamma_chain.shape[0], "Size mismatch between h-chain and gamma-chain")
+        error_message(h_chain.shape[0] != J_chain.shape[0], "Size mismatch between h-chain and J-chain")
         print(f"{"="*90}\n\nIteration: {it} \t Ω: {OMEGA} \t Number of sites: {N_s}\n")
         
         kappa_chain = np.sqrt(gamma_chain**2 + h_chain**2)
@@ -56,75 +57,66 @@ def RandomIsing_SDRG(N, zeta, gamma_0, h_0, thresh, DEBUG):
         max_idx = np.argmax(parameters)
         OMEGA = parameters[max_idx]
 
-        checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t maximum index: {(max_idx, "[COUPLING]") if max_idx <= N_s-2 else (max_idx-(N_s-1), "[FIELD]")}")
+        checkpoint(DEBUG, msg=f"OMEGA: {OMEGA} \t maximum index: {(max_idx, "[COUPLING]") if max_idx < N_s else (max_idx-N_s, "[FIELD]")}")
         checkpoint(DEBUG, msg=f"Coupling chain: {J_chain}")
         checkpoint(DEBUG, msg=f"kappa chain: {kappa_chain}")
         
-        if max_idx <= N_s-2: # maximum parameter is a coupling
-
+        if max_idx < N_s:     # ---- maximum parameter is a coupling
+            next_idx = (max_idx+1)%N_s
             gamma_tilde = 0
             if h_0 != 0:
                 # 2-order approximation
-                gamma_tilde = gamma_chain[max_idx]*gamma_chain[max_idx+1]/J_chain[max_idx]
+                gamma_tilde = gamma_chain[max_idx]*gamma_chain[next_idx]/J_chain[max_idx]
             else:
                 # Analitic expression
                 gamma_tilde = 0.5*( 
-                    np.sqrt(J_chain[max_idx]**2 + (gamma_chain[max_idx]+gamma_chain[max_idx+1])**2) -
-                    np.sqrt(J_chain[max_idx]**2 + (gamma_chain[max_idx]-gamma_chain[max_idx+1])**2)
+                    np.sqrt(J_chain[max_idx]**2 + (gamma_chain[max_idx]+gamma_chain[next_idx])**2) -
+                    np.sqrt(J_chain[max_idx]**2 + (gamma_chain[max_idx]-gamma_chain[next_idx])**2)
                     )
 
-            h_tilde = h_chain[max_idx] + h_chain[max_idx+1]
+            h_tilde = h_chain[max_idx] + h_chain[next_idx]
+
+            checkpoint(DEBUG, msg=f"next_idx: {next_idx}")
 
             # Decimation step
             J_chain = np.delete(J_chain, max_idx)
 
-            gamma_chain = np.delete(gamma_chain, max_idx+1)
-            gamma_chain[max_idx] = gamma_tilde
+            if max_idx == N_s-1:
+                # when removing the last coupling, ring topology must be preserved
+                gamma_chain[0] = gamma_tilde
+                gamma_chain = np.delete(gamma_chain, N_s-1)
 
-            h_chain = np.delete(h_chain, max_idx+1)
-            h_chain[max_idx] = h_tilde
-
-        else:            # maximum parameter is a field
-            decimated_sites += 1
-            max_idx = max_idx-(N_s-1)
-
-            if max_idx <= N_s-2 and max_idx >= 1: 
-                # maximum parameter belongs to INTERNAL site 
-                J_tilde       = J_chain[max_idx]*J_chain[max_idx-1]/gamma_chain[max_idx] * (gamma_chain[max_idx]/gamma_chain[max_idx])**2
-                h_tilde_plus  = h_chain[max_idx+1] + J_chain[max_idx]*h_chain[max_idx]/gamma_chain[max_idx]
-                h_tilde_minus = h_chain[max_idx-1] + J_chain[max_idx-1]*h_chain[max_idx]/gamma_chain[max_idx]
-
-                # Decimation step
-                J_chain = np.delete(J_chain, max_idx)
-                J_chain[max_idx-1] = J_tilde
-
-                gamma_chain = np.delete(gamma_chain, max_idx)
-
-                h_chain[max_idx-1] = h_tilde_minus; h_chain[max_idx+1] = h_tilde_plus
-                h_chain = np.delete(h_chain, max_idx)
-
-            elif max_idx == 0:
-                # maximum parameter belongs to FIRST site
-                h_tilde_plus  = h_chain[max_idx+1] + J_chain[max_idx]*h_chain[max_idx]/gamma_chain[max_idx]
-
-                # Decimation step
-                J_chain = np.delete(J_chain, max_idx)
-                gamma_chain = np.delete(gamma_chain, max_idx)
-                h_chain = np.delete(h_chain, max_idx)
-                h_chain[max_idx] = h_tilde_plus
-
-            elif max_idx == N_s-1:
-                # maximum parameter belongs to LAST site
-                h_tilde_minus = h_chain[max_idx-1] + J_chain[max_idx-1]*h_chain[max_idx]/gamma_chain[max_idx]
-
-                # Decimation step
-                J_chain = np.delete(J_chain, max_idx-1)
-                gamma_chain = np.delete(gamma_chain, max_idx)
-                h_chain = np.delete(h_chain, max_idx)
-                h_chain[max_idx-1] = h_tilde_minus
-
+                h_chain[0] = h_tilde
+                h_chain = np.delete(h_chain, N_s-1)
             else:
-                error_message(True, f"Impossible to remove index {max_idx} from h, gamma lists with sizes {gamma_chain.shape[0]}")
+                gamma_chain[max_idx] = gamma_tilde
+                gamma_chain = np.delete(gamma_chain, next_idx)
+
+                h_chain[max_idx] = h_tilde
+                h_chain = np.delete(h_chain, next_idx)
+
+        else:                # ---- maximum parameter is a field
+            decimated_sites += 1
+
+            max_idx  = max_idx-N_s
+            prev_idx = max_idx-1 if max_idx > 0 else N_s-1
+            next_idx = (max_idx+1)%N_s
+
+            checkpoint(DEBUG, msg=f"prev_idx: {prev_idx}, next_idx: {next_idx}")
+
+            J_tilde       = J_chain[max_idx]*J_chain[prev_idx]/kappa_chain[max_idx] * (gamma_chain[max_idx]/kappa_chain[max_idx])**2
+            h_tilde_plus  = h_chain[next_idx] + J_chain[max_idx]*h_chain[max_idx]/kappa_chain[max_idx]
+            h_tilde_minus = h_chain[prev_idx] + J_chain[prev_idx]*h_chain[max_idx]/kappa_chain[max_idx]
+
+            # Decimation step
+            J_chain[prev_idx] = J_tilde
+            J_chain = np.delete(J_chain, max_idx)
+
+            gamma_chain = np.delete(gamma_chain, max_idx)
+
+            h_chain[prev_idx] = h_tilde_minus; h_chain[next_idx] = h_tilde_plus
+            h_chain = np.delete(h_chain, max_idx)
+
         
         # Save sites decimation counter
         sites_decimation_fraction[it] = decimated_sites/it

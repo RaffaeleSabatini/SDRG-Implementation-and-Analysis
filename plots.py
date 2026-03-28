@@ -15,7 +15,7 @@ def plot_site_decimation(site_decim_frac, N):
 
     fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
 
-    ax.scatter(N-np.arange(N), site_decim_frac, s=2)
+    ax.scatter(np.arange(N), site_decim_frac[::-1], s=2) # site_decim_frac is ordered by iteration number!
     ax.set_xlabel(r"Remaining sites, $n$")
     ax.set_xlim(0, N)
     ax.set_ylabel(r"Site decimation fraction, $\rho$")
