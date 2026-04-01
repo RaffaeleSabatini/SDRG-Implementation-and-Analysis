@@ -66,10 +66,17 @@ def read_results(dir, gamma_0=None, h_0=None, N=2048, M=None, idx=None):
         return results
     else:
         # Extract the list of gamma-values in the same order as the files
-        pattern = r"gamma(.*?)\_"
+        gamma_pattern = r"gamma(.*?)\_" 
+        h_pattern     = r"h(.*?)\_"
+        
         gamma_list = []
-        for file in files:
-            match = re.search(pattern, file)
-            gamma_list.append(match.group(1))
+        h_list     = []
 
-        return results, np.array(gamma_list)
+        for file in files:
+            gamma_match = re.search(gamma_pattern, file)
+            gamma_list.append(gamma_match.group(1))
+
+            h_match = re.search(h_pattern, file)
+            h_list.append(h_match.group(1))
+
+        return results, np.array(gamma_list), np.array(h_list)
