@@ -7,7 +7,7 @@ from utilities import *
 
 #----------------------------------------------------------------------------------------------------------
 
-def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, thresh=1e-10, DEBUG=False):
+def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=False):
     '''
         Executes one iteration of the SDRG algorithm to collect the statistics about the decimation
         of local terms in the RTLFI Hamiltonian.
@@ -110,13 +110,13 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, thresh=
         it += 1
 
     print(f"{"="*90}\n---SDRG algorithm executed on chain #{N_iter}---\n{"="*90}")
-    return OMEGA, site_decimation_cache
+    return omega_cache, site_decimation_cache
 
 
 #---------------------------------------------------------------------------------------------------
 
 
-def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, thresh=1e-10, n_cores = -2, DEBUG=False):
+def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=False):
     '''
         Performs strong disorder RG algorithm to compute the ground state of the
         Random Transverse and Longitudinal Field Ising Chain Hamiltonian.
@@ -132,7 +132,6 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, thresh=1e-10, n_cores = 
             h_0 (float)    : maximum longitudinal field
             J_0 (float)    : maximum coupling term
             zeta (float)   : fraction of sites on which the transverse field acts
-            thresh (float) : stopping threshold for energy scale
             n_cores (int)  : number of cores to parallelize execution
     '''
     # Checking that input parameters are meaningful
@@ -142,14 +141,17 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, thresh=1e-10, n_cores = 
     error_message(gamma_0 < 0, "gamma_0 must be non-negative")
     error_message(J_0 < 0, "J_0 must be non-negative")
     error_message(h_0 < 0, "h_0 must be non-negative")
-    error_message(thresh <= 0, "threshold must be positive")
     
-    print("STRONG-DISORDER RG ALGORITHM FOR ISING CHAIN STARTED")
+    print(f"\nSTARTED STRONG-DISORDER RG ALGORITHM FOR ISING CHAIN (GAMMA0={gamma_0} - H0={h_0} - N={N} - M={M})")
     start = time()
 
-    results = Parallel(n_jobs=n_cores)(delayed(RandomIsing_SDRG_single_core)(N_iter, N, gamma_0, h_0, J_0, zeta, thresh, DEBUG) for N_iter in range(M))
+    results = Parallel(n_jobs=n_cores)(delayed(RandomIsing_SDRG_single_core)(N_iter, N, gamma_0, h_0, J_0, zeta, DEBUG) for N_iter in range(M))
 
     OMEGA_list, sites_decimation_list = zip(*results)
+    
+    OMEGA_matrix = np.vstack(OMEGA_list)
+    excitation = np.mean(OMEGA_matrix, axis=0)
+
     sites_decimation_matrix = np.vstack(sites_decimation_list)
     sites_decimation_fraction = np.mean(sites_decimation_matrix, axis=0)
 
@@ -157,7 +159,7 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, thresh=1e-10, n_cores = 
     print(f"{"="*90}\n")
     print(f"SDRG ALGORITHM EXECUTED WITH TIME {end-start} (s).")
 
-    return OMEGA_list, sites_decimation_fraction
+    return excitation, sites_decimation_fraction
 
 #----------------------------------------------------------------------------------------------------------
 
