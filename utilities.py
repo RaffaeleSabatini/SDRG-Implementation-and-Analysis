@@ -79,4 +79,4 @@ def read_results(dir, gamma_0=None, h_0=None, N=2048, M=None, idx=None):
             h_match = re.search(h_pattern, file)
             h_list.append(h_match.group(1))
 
-        return results, np.array(gamma_list), np.array(h_list)
+        return results, np.array(gamma_list, dtype=float), np.array(h_list, dtype=float)
