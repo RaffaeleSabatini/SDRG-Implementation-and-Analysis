@@ -109,3 +109,21 @@ def plot_critial_position(omega, gamma, h):
     
     fig.tight_layout()
     plt.show()
+
+#-----------------------------------------------------------------------------------------
+
+def plot_scaling_behaviour(mm_array, h0_array, L_array):
+    '''
+        Plots the magnetic moments as a function of h_0 for different values of L (chain length)
+    '''
+
+    n_plots = L_array.shape[0]
+    n_points = h0_array.shape[0]
+    error_message(mm_array.shape[0] != n_points, msg = f"Expected number of points ({mm_array.shape[0]}) is different from {n_points}")
+    error_message(mm_array.shape[1] != n_plots, msg = f"Expected number of plots ({mm_array.shape[1]}) is different from {n_plots}")
+    
+    fig, axes = plt.subplots()
+    axes.grid()
+
+    for plot in range(n_plots):
+        axes.scatter(h0_array, mm_array[:, plot])

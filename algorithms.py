@@ -25,8 +25,9 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
     print(f"{"="*90}\n---Executing SD renormalization algorithm on chain #{N_iter}---\n{"="*90}")
 
     # Output values
-    omega_cache = np.zeros(shape=N)
+    omega_cache           = np.zeros(shape=N)
     site_decimation_cache = np.zeros(shape=N)
+    magnetic_moments      = np.ones(shape=N)
 
     # Initializing spin chain with field and coupling parameters
     gamma = rnd.uniform(0, gamma_0, N)
@@ -72,10 +73,14 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
             h[max_idx] = h_tilde
             h = np.delete(h, next_idx)
 
+            magnetic_moments[max_idx] += magnetic_moments[next_idx]
+            magnetic_moments = np.delete(magnetic_moments, next_idx)
+
             if max_idx == N_s-1:
                 # when removing first element, ring topology must be preserved
-                h     = np.roll(h, 1)
-                gamma = np.roll(gamma, 1)
+                h                = np.roll(h, 1)
+                gamma            = np.roll(gamma, 1)
+                magnetic_moments = np.roll(magnetic_moments, 1)
             
             # Save sites decimation counter
             site_decimation_cache[it] = 0
@@ -103,6 +108,8 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
             h[next_idx] += -(E_pp - E_mm - E_pm + E_mp) / 4
             h = np.delete(h, max_idx)
 
+            magnetic_moments = np.delete(magnetic_moments, max_idx)
+
             # Save sites decimation counter
             site_decimation_cache[it] = 1
         
@@ -110,7 +117,7 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
         it += 1
 
     print(f"{"="*90}\n---SDRG algorithm executed on chain #{N_iter}---\n{"="*90}")
-    return omega_cache, site_decimation_cache
+    return omega_cache, site_decimation_cache, magnetic_moments[0]
 
 
 #---------------------------------------------------------------------------------------------------
@@ -147,7 +154,7 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=Fals
 
     results = Parallel(n_jobs=n_cores)(delayed(RandomIsing_SDRG_single_core)(N_iter, N, gamma_0, h_0, J_0, zeta, DEBUG) for N_iter in range(M))
 
-    OMEGA_list, sites_decimation_list = zip(*results)
+    OMEGA_list, sites_decimation_list, mm_list = zip(*results)
     
     OMEGA_matrix = np.vstack(OMEGA_list)
     excitation = np.mean(OMEGA_matrix, axis=0)
@@ -155,11 +162,14 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=Fals
     sites_decimation_matrix = np.vstack(sites_decimation_list)
     sites_decimation_fraction = np.mean(sites_decimation_matrix, axis=0)
 
+    magnetic_moments = np.array(mm_list)
+    magnetic_moment = np.mean(magnetic_moments)
+
     end = time()
     print(f"{"="*90}\n")
     print(f"SDRG ALGORITHM EXECUTED WITH TIME {end-start} (s).")
 
-    return excitation, sites_decimation_fraction
+    return excitation, sites_decimation_fraction, magnetic_moment
 
 #----------------------------------------------------------------------------------------------------------
 
