@@ -5,9 +5,9 @@ from utilities import *
 from itertools import product
 
 M      = int(input("Input number of samples (M):\n"))
-N_list = [2**n for n in range(7, 14)]
+N_list = [2**n for n in range(8, 13)]
 ZETA   = 1
-H0     = 0
+H0     = [2**(-3*exp) for exp in range(0,14)]
 GAMMA0 = 0.93
 
 for h0, N in product(H0, N_list):
