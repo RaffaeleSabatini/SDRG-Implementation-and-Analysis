@@ -74,7 +74,7 @@ def read_results(dir_name, gamma_0=None, h_0=None, N=2048, M=None, idx=None):
     else:
         # Extract the list of gamma-values in the same order as the files
         gamma_pattern = r"gamma(.*?)\_" 
-        h_pattern     = r"h(.*?)\_"
+        h_pattern     = r"_h(.*?)\_"
         
         gamma_list = []
         h_list     = []
