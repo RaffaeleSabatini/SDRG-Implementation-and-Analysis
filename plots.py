@@ -143,7 +143,7 @@ def plot_analysics_at_critical_point(results, ylabel="", log_abs = False):
         y_val = np.abs(np.log(result_matrix[:, 1])) if log_abs else result_matrix[:, 1] 
         sorter = np.argsort(x_val)
 
-        axes.plot(x_val[sorter], y_val[sorter], 'o-', label = N, color = cmaps(i/(len(N_list)+1)))
+        axes.plot(x_val[sorter], y_val[sorter], 'o-', label = N, color = cmaps((i+1)/len(N_list)))
     
     axes.legend(title="N:")
     axes.grid()

@@ -98,20 +98,17 @@ def read_results(dir_name, gamma_0=None, h_0=None, N=2048, M=None, idx=None):
         return results, np.array(gamma_list, dtype=float), np.array(h_list, dtype=float)
     
 
-def read_final_values(dir_name, gamma_0=None, h_0=None, N=2048, M=None, idx=None):
+def read_final_values(dir_name, save_gamma = False):
     '''
-        Returns a dictionary whose values are matrices containing final values (columns) 
-        vs h0 (rows) and the keys are the lengths (M) of the chain.
+        Returns a dictionary with following characteristics:
+            - if save_gamma is True, keys are (N,h0)-pairs and values are matrices with excitations/mm and gamma0 as rows
+
+            - if save_gamma is False, keys are chain lengths (N) and values are matrices with excitations/mm and h0 as rows  
     '''
 
+    # Construct absolute path
     dir_path = os.path.join(BASE_DIR, dir_name)
-    file_name = ""
-    if None not in [gamma_0, h_0, N, M, idx]:
-        # If all parameters are provided, compose the name of the file
-        file_name = f"M{M}_N{N}_gamma{gamma_0}_h{h_0}_{idx}"
-    else:
-        # Otherwise look all the files
-        file_name = "*"
+    file_name = "*"
 
     query = os.path.join(dir_path, file_name)
     files = glob(query) 
@@ -121,44 +118,58 @@ def read_final_values(dir_name, gamma_0=None, h_0=None, N=2048, M=None, idx=None
         print("No files found!")
         return None
     
-    if file_name != "*":
-        # Single file is loaded
-        result = np.load(files)
-        return result[-1]
-    
-    else:
-        # Create dictionary whose entries are matrices and keys are N-values
-        results = {}
+    # Output dictionary
+    results = {}
 
-        N_pattern = r"_N(.*?)\_"
-        h_pattern = r"_h(.*?)\_"
-        N_list = [] # to keep track of new dictionary entries
-        for file in files:
-            # From each file extract N, h0, and last value
-            N_match = re.search(N_pattern, file)
-            N_new = int(N_match.group(1))
+    N_pattern = r"_N(.*?)\_"
+    h_pattern = r"_h(.*?)\_"
+    if save_gamma:
+        gamma_pattern = r"_gamma(.*?)\_"
 
-            h_match = re.search(h_pattern, file)
-            h_new = h_match.group(1)
+    keys_list = [] # to keep track of new dictionary entries
 
-            loaded_vals = np.load(file)
-            if loaded_vals.ndim > 0:
-                new_val = loaded_vals[-2]
+    for file in files:
+        # From each file extract N, h0, gamma0, and last value (excitation or magnetic moment)
+        N_match = re.search(N_pattern, file)
+        N_new = int(N_match.group(1))
+
+        h_match = re.search(h_pattern, file)
+        h_new = float(h_match.group(1))
+
+        if save_gamma:
+            gamma_match = re.search(gamma_pattern, file)
+            gamma_new = float(gamma_match.group(1))
+
+        loaded_vals = np.load(file)
+        if loaded_vals.ndim > 0:
+            new_val = loaded_vals[-2]
+        else:
+            new_val = loaded_vals
+
+        # Append result to the dictionary
+        if save_gamma:
+            key_new = (N_new, h_new)
+            if key_new not in keys_list:
+                # If key_new is not yet a key in results, create a new entry in the dicttionary
+                keys_list.append(key_new)
+                results[key_new] = np.matrix([gamma_new, new_val], dtype=float)
             else:
-                new_val = loaded_vals
+                # If key_new is already a key, update the matrix by adding a new row
+                new_row = np.matrix([h_new, new_val], dtype=float)
+                results[N_new] = np.r_[results[N_new], new_row]
 
-            # Append result to the dictionary
-            if N_new not in N_list:
+        else:
+            if N_new not in keys_list:
                 # If N_new is not yet a key in results, create a new entry in the dicttionary
-                N_list.append(N_new)
+                keys_list.append(N_new)
                 results[N_new] = np.matrix([h_new, new_val], dtype=float)
             else:
                 # If N_new is already a key, update the matrix by adding a new row
                 new_row = np.matrix([h_new, new_val], dtype=float)
                 results[N_new] = np.r_[results[N_new], new_row]
-        
-        sorted_res = {key: results[key] for key in sorted(results)}
-        print(sorted_res.keys())
-        return sorted_res
+    
+    sorted_res = {key: results[key] for key in sorted(results)}
+    print(sorted_res.keys())
+    return sorted_res
 
         
