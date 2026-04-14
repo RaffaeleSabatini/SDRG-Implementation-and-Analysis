@@ -9,11 +9,11 @@ from utilities import *
 
 
 params = {
-    'font.size': 12,
-    'axes.labelsize': 13,
+    'font.size': 14,
+    'axes.labelsize': 14,
     'axes.titlesize': 14,
-    'xtick.labelsize': 11,
-    'ytick.labelsize': 11,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 12,
     'figure.titlesize': 16
 }
