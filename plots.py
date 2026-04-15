@@ -129,6 +129,31 @@ def plot_critial_position(omega, gamma, h):
 
 #-----------------------------------------------------------------------------------------
 
+def plot_critical_positions(final_values_dict, L):
+    '''
+        Plots excitations as a function of gamma_0 for different values of h_0, after providing L.
+    '''
+
+    filtered_dict = {keys[1]: np.array(final_values_dict[keys]) for keys in final_values_dict if keys[0] == L}
+    h_list = list(filtered_dict.keys())
+    n_plots = len(h_list)
+
+    fig, axes = plt.subplots(nrows=n_plots//3, ncols=3, dpi=200, figsize=(12,7))
+    axes = axes.flatten()
+
+    for i, h0 in enumerate(h_list): 
+        gamma = filtered_dict[h0][:, 0]
+        value = filtered_dict[h0][:, 1]
+
+        axes[i].scatter(gamma, np.abs(np.log(value)))
+        axes[i].set_title(fr"$\log_2 (h_0) = {np.log2(h0):.2f}$")
+        axes[i].grid()
+    
+    fig.tight_layout()
+        
+
+#-----------------------------------------------------------------------------------------
+
 def plot_scaling_behaviour(mm_array, h0_array, L_array):
     '''
         Plots the magnetic moments as a function of h_0 for different values of L (chain length)
