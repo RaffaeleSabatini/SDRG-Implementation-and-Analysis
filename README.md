@@ -1,6 +1,6 @@
 # SDRG Implementation and Analysis
 
-![Badge](https://img.shields.io/badge/Status-In%20Work-in-progress)
+![Badge](https://img.shields.io/badge/Status-In%20Progress-orange)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 This project is the final assignment of the course Quantum Information and Computing, belonging to Physics of Data MSc (PD).
