@@ -1,24 +1,19 @@
 # SDRG Implementation and Analysis
 
-![Badge](https://img.shields.io/badge/Status-In%20Sviluppo-orange)
+![Badge](https://img.shields.io/badge/Status-In%20Work-in-progress)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 This project is the final assignment of the course Quantum Information and Computing, belonging to Physics of Data MSc (PD).
 
 The assignment provides for the implementation of the Strong Disorder Renormalization Group (SDRG) algorithm with reference to the Random Transverse-and-Longitudinal Field (RTLF) Ising model. The aim of the assignment is to reproduce the plots in https://arxiv.org/pdf/2501.02643 and identify potential differences.
 
-## 🚀 Caratteristiche
-- Feature 1: Descrizione rapida.
-- Feature 2: Descrizione rapida.
-- Analisi dati / Performance ottimizzate.
+## 🛠️ Tech stack
+* **Language:** Python 3.x
+* **Libraries:** NumPy, Pandas, Matplotlib
 
-## 🛠️ Tecnologie Utilizzate
-* **Linguaggio:** Python 3.x
-* **Librerie:** NumPy, Pandas, Matplotlib
-* **Strumenti:** Docker, Git
+## 📦 Installation
 
-## 📦 Installazione
-
-1. Clona il repository:
+1. Clone repo:
    ```bash
-   git clone [https://github.com/tuo-username/nome-progetto.git](https://github.com/tuo-username/nome-progetto.git)
+   git clone [[https://github.com/RaffaeleSabatini/QIAC2-project](https://github.com/RaffaeleSabatini/QIAC2-project)]
+   
