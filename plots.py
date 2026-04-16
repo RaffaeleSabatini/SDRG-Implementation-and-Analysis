@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
+from scipy.optimize import curve_fit
 from matplotlib import colormaps
 from utilities import *
 
@@ -129,7 +130,7 @@ def plot_critial_position(omega, gamma, h):
 
 #-----------------------------------------------------------------------------------------
 
-def plot_critical_positions(final_values_dict, L):
+def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
     '''
         Plots excitations as a function of gamma_0 for different values of h_0, after providing L.
     '''
@@ -143,9 +144,18 @@ def plot_critical_positions(final_values_dict, L):
 
     for i, h0 in enumerate(h_list): 
         gamma = filtered_dict[h0][:, 0]
-        value = filtered_dict[h0][:, 1]
+        value = np.abs(np.log(filtered_dict[h0][:, 1]))
 
-        axes[i].scatter(gamma, np.abs(np.log(value)))
+        if fit_parabolas:
+            model_f = lambda x, a, b, c: a*x**2 + b*x + c
+            p_fit, _ = curve_fit(model_f, gamma, value, bounds=([-np.inf, 0, -np.inf], [0, np.inf, np.inf]))
+            
+            gamma_r = np.linspace(np.min(gamma), np.max(gamma), 1000)
+            fitted_y = model_f(gamma_r, *p_fit)
+            axes[i].plot(gamma_r, fitted_y, label=fr"$\Gamma_c$={-p_fit[1]/(2*p_fit[0])}")
+
+        axes[i].scatter(gamma, value)
+        axes[i].legend()
         axes[i].set_title(fr"$\log_2 (h_0) = {np.log2(h0):.2f}$")
         axes[i].grid()
     
