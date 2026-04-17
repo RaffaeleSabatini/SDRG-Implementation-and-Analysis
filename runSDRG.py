@@ -8,10 +8,10 @@ from itertools import product
 dir_name = input("Insert directory name:\n")
 
 M      = int(input("Input number of samples (M):\n"))
-N      = [2**n for n in range(10, 12)] # IMPORTANT: after this run change N extrema into 12, 14!!!
+N      = 2048
 ZETA   = 1
-H0     = [2**(-3*exp) for exp in range(2, 8)]
-GAMMA0 = [0.8 + (e/16)*(1.05-0.8) for e in range(0, 17)]
+H0     = np.exp(-6)
+GAMMA0 = [0.5, 0.8, 0.84, 0.85, 0.86, 0.89, 0.95, 1]
 
 combinations = list(product(GAMMA0, H0, N))
 total_c = len(combinations)
