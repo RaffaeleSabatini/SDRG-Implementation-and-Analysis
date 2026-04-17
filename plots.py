@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
+from scipy.optimize import curve_fit
 from matplotlib import colormaps
 from utilities import *
 
@@ -9,11 +10,11 @@ from utilities import *
 
 
 params = {
-    'font.size': 12,
-    'axes.labelsize': 13,
+    'font.size': 14,
+    'axes.labelsize': 14,
     'axes.titlesize': 14,
-    'xtick.labelsize': 11,
-    'ytick.labelsize': 11,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 12,
     'figure.titlesize': 16
 }
@@ -126,6 +127,40 @@ def plot_critial_position(omega, gamma, h):
     
     fig.tight_layout()
     plt.show()
+
+#-----------------------------------------------------------------------------------------
+
+def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
+    '''
+        Plots excitations as a function of gamma_0 for different values of h_0, after providing L.
+    '''
+
+    filtered_dict = {keys[1]: np.array(final_values_dict[keys]) for keys in final_values_dict if keys[0] == L}
+    h_list = list(filtered_dict.keys())
+    n_plots = len(h_list)
+
+    fig, axes = plt.subplots(nrows=n_plots//3, ncols=3, dpi=200, figsize=(12,7))
+    axes = axes.flatten()
+
+    for i, h0 in enumerate(h_list): 
+        gamma = filtered_dict[h0][:, 0]
+        value = np.abs(np.log(filtered_dict[h0][:, 1]))
+
+        if fit_parabolas:
+            model_f = lambda x, a, b, c: a*x**2 + b*x + c
+            p_fit, _ = curve_fit(model_f, gamma, value, bounds=([-np.inf, 0, -np.inf], [0, np.inf, np.inf]))
+            
+            gamma_r = np.linspace(np.min(gamma), np.max(gamma), 1000)
+            fitted_y = model_f(gamma_r, *p_fit)
+            axes[i].plot(gamma_r, fitted_y, label=fr"$\Gamma_c$={-p_fit[1]/(2*p_fit[0])}")
+
+        axes[i].scatter(gamma, value)
+        axes[i].legend()
+        axes[i].set_title(fr"$\log_2 (h_0) = {np.log2(h0):.2f}$")
+        axes[i].grid()
+    
+    fig.tight_layout()
+        
 
 #-----------------------------------------------------------------------------------------
 

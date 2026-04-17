@@ -155,8 +155,8 @@ def read_final_values(dir_name, save_gamma = False):
                 results[key_new] = np.matrix([gamma_new, new_val], dtype=float)
             else:
                 # If key_new is already a key, update the matrix by adding a new row
-                new_row = np.matrix([h_new, new_val], dtype=float)
-                results[N_new] = np.r_[results[N_new], new_row]
+                new_row = np.matrix([gamma_new, new_val], dtype=float)
+                results[key_new] = np.r_[results[key_new], new_row]
 
         else:
             if N_new not in keys_list:
