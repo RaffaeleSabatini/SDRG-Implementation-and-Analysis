@@ -169,7 +169,6 @@ def read_final_values(dir_name, save_gamma = False):
                 results[N_new] = np.r_[results[N_new], new_row]
     
     sorted_res = {key: results[key] for key in sorted(results)}
-    print(sorted_res.keys())
     return sorted_res
 
         

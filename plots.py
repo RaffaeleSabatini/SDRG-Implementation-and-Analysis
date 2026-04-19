@@ -10,12 +10,12 @@ from utilities import *
 
 
 params = {
-    'font.size': 14,
-    'axes.labelsize': 14,
-    'axes.titlesize': 14,
-    'xtick.labelsize': 14,
-    'ytick.labelsize': 14,
-    'legend.fontsize': 12,
+    'font.size': 16,
+    'axes.labelsize': 16,
+    'axes.titlesize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 14,
     'figure.titlesize': 16
 }
 plt.rcParams.update(params)
@@ -141,6 +141,10 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
 
     fig, axes = plt.subplots(nrows=n_plots//3, ncols=3, dpi=200, figsize=(12,7))
     axes = axes.flatten()
+    fig.suptitle(fr"Cross-over position $\Gamma_c$ for $L={L}$", weight="bold")
+
+    if fit_parabolas:
+        out_dict = {h0: 0 for h0 in h_list}
 
     for i, h0 in enumerate(h_list): 
         gamma = filtered_dict[h0][:, 0]
@@ -152,15 +156,44 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
             
             gamma_r = np.linspace(np.min(gamma), np.max(gamma), 1000)
             fitted_y = model_f(gamma_r, *p_fit)
-            axes[i].plot(gamma_r, fitted_y, label=fr"$\Gamma_c$={-p_fit[1]/(2*p_fit[0])}")
+            crit_gamma = -p_fit[1]/(2*p_fit[0])
+            axes[i].vlines(crit_gamma, np.min(value), np.max(value) , label=fr"$\Gamma_c$={crit_gamma:.3f}", color="red")
+            axes[i].plot(gamma_r, fitted_y)
+
+            out_dict[h0] = crit_gamma
 
         axes[i].scatter(gamma, value)
         axes[i].legend()
         axes[i].set_title(fr"$\log_2 (h_0) = {np.log2(h0):.2f}$")
+        axes[i].set_xlabel(r"$\Gamma_c$")
+        axes[i].set_ylabel(r"$\overline{\ln \epsilon}$")
         axes[i].grid()
     
     fig.tight_layout()
+
+    if fit_parabolas: return out_dict
+
+#-----------------------------------------------------------------------------------------
+
+def plot_critical_lines(critical_positions):
+    '''
+        Plots the crossover positions as functions of (1/ln)h_0 for different values of L
+    '''
         
+    fig, ax = plt.subplots(dpi=200, figsize=(12, 9))
+    fig.tight_layout()
+
+    for (L, crit_position) in critical_positions.items():
+        h_list     = np.array(list(crit_position.keys()))
+        gamma_list = np.array(list(crit_position.values()))
+
+        ax.plot(1/np.abs(np.log(h_list)), gamma_list, "-o", label=f"L = {L}")
+
+        ax.set_xlabel(r"$|1/\ln{(h_0)}|$")
+        ax.set_ylabel(r"$\Gamma_c$")
+
+    ax.legend()
+    ax.grid()
 
 #-----------------------------------------------------------------------------------------
 
@@ -180,6 +213,8 @@ def plot_scaling_behaviour(mm_array, h0_array, L_array):
     for plot in range(n_plots):
         axes.scatter(h0_array, mm_array[:, plot])
 
+
+
 #-----------------------------------------------------------------------------------------
 
 def plot_analysics_at_critical_point(results, ylabel="", log_abs = False):
@@ -190,7 +225,7 @@ def plot_analysics_at_critical_point(results, ylabel="", log_abs = False):
     for i, N in enumerate(N_list):
         result_matrix = np.array(results[N])
 
-        x_val = result_matrix[:, 0]
+        x_val = np.log(result_matrix[:, 0])
         y_val = np.abs(np.log(result_matrix[:, 1])) if log_abs else result_matrix[:, 1] 
         sorter = np.argsort(x_val)
 
@@ -198,8 +233,8 @@ def plot_analysics_at_critical_point(results, ylabel="", log_abs = False):
     
     axes.legend(title="N:")
     axes.grid()
-    axes.set_xlabel(fr"$h_0$")
-    axes.set_xscale("log")
+    axes.set_xlabel(fr"$\ln (h_0)$")
+    #axes.set_xscale("log")
     axes.set_ylabel(ylabel)
 
     fig.tight_layout()
