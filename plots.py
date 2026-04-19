@@ -22,7 +22,7 @@ plt.rcParams.update(params)
 
 #-----------------------------------------------------------------------------------------
 
-def plot_results(type, results_vec, N, gamma=None, h=None):
+def plot_results(type, results_vec, N, gamma=None, title=""):
     '''
         Plots the fraction of decimated sites (#site decimated/#total decimations) as a function of 
         remaining sites number.
@@ -43,7 +43,7 @@ def plot_results(type, results_vec, N, gamma=None, h=None):
 
     ylabel = {
         "decimations": "site decimation fraction",
-        "excitations": "log-excitation"
+        "excitations": r"log-excitation, $\ln (\varepsilon)$"
         }
     
     error_message(type not in ylabel.keys(), f"Possible types are {ylabel.keys()}")
@@ -67,17 +67,18 @@ def plot_results(type, results_vec, N, gamma=None, h=None):
                 results[::-1],
                 "-o",
                 label=fr"$\Gamma = {gamma[n]}$" if gamma_provided else n,
-                ms=1.5,
+                ms=2.5,
                 c = cmap((n+1)/n_plots)
                 )
 
         elif type=="excitations":
             # plot log-excitations
+            label = fr"$\ln (h_0) = {np.log(gamma[n]):.2f}$" if gamma[n] > 0 else rf"$h_0 = {gamma[n]:.2f}$"
             ax.plot(
                 np.arange(N),
                 np.log(results[::-1]),
                 "-o",
-                label=fr"$\Gamma = {gamma[n]}$" if gamma_provided else n,
+                label= label if gamma_provided else n,
                 ms=1.5,
                 c = cmap((n+1)/n_plots)
                 )
@@ -85,9 +86,10 @@ def plot_results(type, results_vec, N, gamma=None, h=None):
 
     ax.set_xlabel(r"Remaining sites, $n$")
     ax.set_ylabel(fr"{ylabel[type]}")
-    ax.set_xlim(0, N)
+    if title: ax.set_title(title)
 
     if type == "decimations":
+        ax.set_xlim(0, N)
         ax.set_yticks(np.arange(0, 1.1, 0.1))
     elif type == "excitations":
         ax.set_xscale("log")
