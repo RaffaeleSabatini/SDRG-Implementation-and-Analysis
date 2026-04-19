@@ -10,7 +10,7 @@ dir_name = input("Insert directory name:\n")
 M      = int(input("Input number of samples (M):\n"))
 N      = 2048
 ZETA   = 1
-H0     = np.exp(-6)
+H0     = 0
 GAMMA0 = [0.5, 0.8, 0.84, 0.85, 0.86, 0.89, 0.95, 1]
 
 for i, gamma0 in enumerate(GAMMA0):
