@@ -22,7 +22,7 @@ plt.rcParams.update(params)
 
 #-----------------------------------------------------------------------------------------
 
-def plot_results(type, results_vec, N, gamma=None, title=""):
+def plot_results(type, results_vec, N, gamma=None, title="", h_val=None):
     '''
         Plots the fraction of decimated sites (#site decimated/#total decimations) as a function of 
         remaining sites number.
@@ -79,8 +79,16 @@ def plot_results(type, results_vec, N, gamma=None, title=""):
                 np.log(results[::-1]),
                 "-o",
                 label= label if gamma_provided else n,
-                ms=1.5,
+                ms=2.5,
                 c = cmap((n+1)/n_plots)
+                )
+            
+            if h_val is not None:
+                ax.scatter(
+                    np.arange(N),
+                    np.log(np.abs(h_val[::-1])),
+                    s=2,
+                    c = "red"
                 )
     
 
