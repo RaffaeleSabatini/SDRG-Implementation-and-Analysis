@@ -7,7 +7,7 @@ from utilities import *
 
 #----------------------------------------------------------------------------------------------------------
 
-def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=False):
+def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, save_h=False, DEBUG=False):
     '''
         Executes one iteration of the SDRG algorithm to collect the statistics about the decimation
         of local terms in the RTLFI Hamiltonian.
@@ -28,6 +28,7 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
     omega_cache           = np.zeros(shape=N)
     site_decimation_cache = np.zeros(shape=N)
     magnetic_moments      = np.ones(shape=N)
+    if save_h: h_cache    = np.zeros(shape=N)
 
     # Initializing spin chain with field and coupling parameters
     gamma = rnd.uniform(0, gamma_0, N)
@@ -91,6 +92,7 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
             next_idx = (max_idx+1)%N_s
 
             checkpoint(DEBUG, msg=f"prev_idx: {prev_idx}, next_idx: {next_idx}")
+            if save_h: h_cache[it] = h[max_idx]
 
             # Computing E_pp, E_pm, E_mp, E_mm
             E_pp = -np.sqrt(gamma[max_idx]**2 + (J[prev_idx] + J[max_idx] + h[max_idx])**2)
@@ -117,13 +119,16 @@ def RandomIsing_SDRG_single_core(N_iter, N, gamma_0, h_0, J_0=1, zeta=1, DEBUG=F
         it += 1
 
     print(f"{"="*90}\n---SDRG algorithm executed on chain #{N_iter}---\n{"="*90}")
-    return omega_cache, site_decimation_cache, magnetic_moments[0]
+    if save_h:
+        return omega_cache, site_decimation_cache, magnetic_moments[0], h_cache
+    else:
+        return omega_cache, site_decimation_cache, magnetic_moments[0]
 
 
 #---------------------------------------------------------------------------------------------------
 
 
-def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=False):
+def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, save_h=False, n_cores = -2, DEBUG=False):
     '''
         Performs strong disorder RG algorithm to compute the ground state of the
         Random Transverse and Longitudinal Field Ising Chain Hamiltonian.
@@ -152,9 +157,12 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=Fals
     print(f"\nSTARTED STRONG-DISORDER RG ALGORITHM FOR ISING CHAIN (GAMMA0={gamma_0} - H0={h_0} - N={N} - M={M})")
     start = time()
 
-    results = Parallel(n_jobs=n_cores)(delayed(RandomIsing_SDRG_single_core)(N_iter, N, gamma_0, h_0, J_0, zeta, DEBUG) for N_iter in range(M))
+    results = Parallel(n_jobs=n_cores)(delayed(RandomIsing_SDRG_single_core)(N_iter, N, gamma_0, h_0, J_0, zeta, save_h, DEBUG) for N_iter in range(M))
 
-    OMEGA_list, sites_decimation_list, mm_list = zip(*results)
+    if save_h:
+        OMEGA_list, sites_decimation_list, mm_list, h_list = zip(*results)
+    else:
+        OMEGA_list, sites_decimation_list, mm_list = zip(*results)
     
     OMEGA_matrix = np.vstack(OMEGA_list)
     excitation = np.mean(OMEGA_matrix, axis=0)
@@ -165,11 +173,18 @@ def RandomIsing_SDRG(M, N, gamma_0, h_0, J_0=1, zeta=1, n_cores = -2, DEBUG=Fals
     magnetic_moments = np.array(mm_list)
     magnetic_moment = np.mean(magnetic_moments)
 
+    if save_h:
+        h_matrix = np.vstack(h_list)
+        h_values = np.mean(h_matrix, axis=0)
+
     end = time()
     print(f"{"="*90}\n")
     print(f"SDRG ALGORITHM EXECUTED WITH TIME {end-start} (s).")
 
-    return excitation, sites_decimation_fraction, magnetic_moment
+    if save_h:
+        return excitation, sites_decimation_fraction, magnetic_moment, h_values
+    else:
+        return excitation, sites_decimation_fraction, magnetic_moment
 
 #----------------------------------------------------------------------------------------------------------
 
