@@ -22,7 +22,7 @@ plt.rcParams.update(params)
 
 #-----------------------------------------------------------------------------------------
 
-def plot_results(type, results_vec, N, gamma=None, title="", h_val=None):
+def plot_results(type, results_vec, N, gamma=None, title="", h_val=None, y_size=7):
     '''
         Plots the fraction of decimated sites (#site decimated/#total decimations) as a function of 
         remaining sites number.
@@ -38,7 +38,7 @@ def plot_results(type, results_vec, N, gamma=None, title="", h_val=None):
 
     error_message(results_vec.shape[0] != N, msg=f"Size of {type} vector(s) ({results_vec.shape[0]}) is different from number of sites ({N})")
 
-    fig, ax = plt.subplots(figsize=(12, 7), dpi=200)
+    fig, ax = plt.subplots(figsize=(12, y_size), dpi=200)
     ax.grid()
 
     ylabel = {
@@ -151,7 +151,7 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
 
     fig, axes = plt.subplots(nrows=n_plots//3, ncols=3, dpi=200, figsize=(12,7))
     axes = axes.flatten()
-    fig.suptitle(fr"Cross-over position $\Gamma_c$ for $L={L}$", weight="bold")
+    fig.suptitle(fr"Cross-over position $\Gamma_0^c$ for $L={L}$", weight="bold")
 
     if fit_parabolas:
         out_dict = {h0: 0 for h0 in h_list}
@@ -167,7 +167,7 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
             gamma_r = np.linspace(np.min(gamma), np.max(gamma), 1000)
             fitted_y = model_f(gamma_r, *p_fit)
             crit_gamma = -p_fit[1]/(2*p_fit[0])
-            axes[i].vlines(crit_gamma, np.min(value), np.max(value) , label=fr"$\Gamma_c$={crit_gamma:.3f}", color="red")
+            axes[i].vlines(crit_gamma, np.min(value), np.max(value) , label=fr"$\Gamma_0^c$={crit_gamma:.3f}", color="red")
             axes[i].plot(gamma_r, fitted_y)
 
             out_dict[h0] = crit_gamma
@@ -175,8 +175,8 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
         axes[i].scatter(gamma, value)
         axes[i].legend()
         axes[i].set_title(fr"$\log_2 (h_0) = {np.log2(h0):.2f}$")
-        axes[i].set_xlabel(r"$\Gamma_c$")
-        axes[i].set_ylabel(r"$\overline{\ln \epsilon}$")
+        axes[i].set_xlabel(r"$\Gamma_0$")
+        axes[i].set_ylabel(r"$|\overline{\ln \epsilon}|$")
         axes[i].grid()
     
     fig.tight_layout()
@@ -187,23 +187,42 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
 
 def plot_critical_lines(critical_positions):
     '''
-        Plots the crossover positions as functions of (1/ln)h_0 for different values of L
+        Plots the crossover positions as functions of 1/|ln(h_0)| for different values of L
     '''
+    
+    fig, ax = plt.subplots(figsize=(10, 7), dpi=150)
+    
+    colors = plt.cm.viridis(np.linspace(0, 0.8, len(critical_positions)))
+
+    for i, (L, crit_position) in enumerate(sorted(critical_positions.items())):
+        h_vals = np.array(list(crit_position.keys()))
+        gamma_vals = np.array(list(crit_position.values()))
         
-    fig, ax = plt.subplots(dpi=200, figsize=(12, 9))
-    fig.tight_layout()
+        x_vals = 1 / np.abs(np.log(h_vals))
+        sort_idx = np.argsort(x_vals)
+        
+        ax.plot(x_vals[sort_idx], gamma_vals[sort_idx], 
+                "-o", 
+                label=f"$L = {L}$", 
+                color=colors[i],
+                markersize=6, 
+                linewidth=1.5,
+                markerfacecolor='white', 
+                markeredgewidth=1.5)
 
-    for (L, crit_position) in critical_positions.items():
-        h_list     = np.array(list(crit_position.keys()))
-        gamma_list = np.array(list(crit_position.values()))
+    # label e titoli 
+    ax.set_xlabel(r"Inv. log-field strength, $\left| \ln(h_0) \right|^{-1}$", fontsize=16)
+    ax.set_ylabel(r"critical longitudinal field, $\Gamma_0^c$", fontsize=16)
+    
+    # bordi
+    ax.grid(True, which='both', linestyle='--', alpha=0.5)
+    ax.spines['top'].set_visible(False)    # Rimuove bordi superflui
+    ax.spines['right'].set_visible(False)
+    
+    # Legenda
+    ax.legend(title="System Size", frameon=True, shadow=False, loc='best')
 
-        ax.plot(1/np.abs(np.log(h_list)), gamma_list, "-o", label=f"L = {L}")
-
-        ax.set_xlabel(r"$|1/\ln{(h_0)}|$")
-        ax.set_ylabel(r"$\Gamma_c$")
-
-    ax.legend()
-    ax.grid()
+    plt.tight_layout()
 
 #-----------------------------------------------------------------------------------------
 
