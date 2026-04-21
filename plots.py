@@ -22,7 +22,7 @@ plt.rcParams.update(params)
 
 #-----------------------------------------------------------------------------------------
 
-def plot_results(type, results_vec, N, gamma=None, title="", h_val=None, y_size=7):
+def plot_results(type, results_vec, N, gamma=None, title="", h_val=None, y_size=7, x_lim=None, y_label=None):
     '''
         Plots the fraction of decimated sites (#site decimated/#total decimations) as a function of 
         remaining sites number.
@@ -41,12 +41,12 @@ def plot_results(type, results_vec, N, gamma=None, title="", h_val=None, y_size=
     fig, ax = plt.subplots(figsize=(12, y_size), dpi=200)
     ax.grid()
 
-    ylabel = {
+    ylabel_dic = {
         "decimations": "site decimation fraction",
-        "excitations": r"log-excitation, $\ln (\varepsilon)$"
+        "excitations": r"Average Log-Energy Scale, $\overline{\ln (\varepsilon)}$"
         }
     
-    error_message(type not in ylabel.keys(), f"Possible types are {ylabel.keys()}")
+    error_message(type not in ylabel_dic.keys(), f"Possible types are {ylabel_dic.keys()}")
     n_plots = results_vec.shape[1] if len(results_vec.shape) == 2 else 1
 
     gamma_provided = np.all(gamma != None)
@@ -93,11 +93,12 @@ def plot_results(type, results_vec, N, gamma=None, title="", h_val=None, y_size=
     
 
     ax.set_xlabel(r"Remaining sites, $n$")
-    ax.set_ylabel(fr"{ylabel[type]}")
+    ax.set_ylabel(fr"{ylabel_dic[type]}") if not y_label else  ax.set_ylabel(fr"{y_label}")
     if title: ax.set_title(title)
 
     if type == "decimations":
-        ax.set_xlim(0, N)
+        right_lim = x_lim if x_lim else N
+        ax.set_xlim(0, right_lim)
         ax.set_yticks(np.arange(0, 1.1, 0.1))
     elif type == "excitations":
         ax.set_xscale("log")
@@ -143,6 +144,8 @@ def plot_critial_position(omega, gamma, h):
 def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
     '''
         Plots excitations as a function of gamma_0 for different values of h_0, after providing L.
+
+        If fit_parabolas is True, it returns the critical value and the curvature radius of the fit.
     '''
 
     filtered_dict = {keys[1]: np.array(final_values_dict[keys]) for keys in final_values_dict if keys[0] == L}
@@ -155,6 +158,7 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
 
     if fit_parabolas:
         out_dict = {h0: 0 for h0 in h_list}
+        radius_dict = {h0: 0 for h0 in h_list}
 
     for i, h0 in enumerate(h_list): 
         gamma = filtered_dict[h0][:, 0]
@@ -166,11 +170,15 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
             
             gamma_r = np.linspace(np.min(gamma), np.max(gamma), 1000)
             fitted_y = model_f(gamma_r, *p_fit)
+
             crit_gamma = -p_fit[1]/(2*p_fit[0])
+            curvature_radius = (1 + (2*p_fit[0]*crit_gamma + p_fit[1])**2)**1.5 / np.abs(p_fit[0])
+
             axes[i].vlines(crit_gamma, np.min(value), np.max(value) , label=fr"$\Gamma_0^c$={crit_gamma:.3f}", color="red")
             axes[i].plot(gamma_r, fitted_y)
 
             out_dict[h0] = crit_gamma
+            radius_dict[h0] = curvature_radius
 
         axes[i].scatter(gamma, value)
         axes[i].legend()
@@ -181,11 +189,12 @@ def plot_critical_positions(final_values_dict, L, fit_parabolas = False):
     
     fig.tight_layout()
 
-    if fit_parabolas: return out_dict
+    if fit_parabolas: 
+        return out_dict, radius_dict
 
 #-----------------------------------------------------------------------------------------
 
-def plot_critical_lines(critical_positions):
+def plot_critical_lines(critical_positions, ylabel="", square_y=True, linear_fit = False):
     '''
         Plots the crossover positions as functions of 1/|ln(h_0)| for different values of L
     '''
@@ -196,23 +205,48 @@ def plot_critical_lines(critical_positions):
 
     for i, (L, crit_position) in enumerate(sorted(critical_positions.items())):
         h_vals = np.array(list(crit_position.keys()))
-        gamma_vals = np.array(list(crit_position.values()))
+        y_vals = np.array(list(crit_position.values()))
+
+        if square_y: y_vals = np.sqrt(y_vals)
         
         x_vals = 1 / np.abs(np.log(h_vals))
         sort_idx = np.argsort(x_vals)
-        
-        ax.plot(x_vals[sort_idx], gamma_vals[sort_idx], 
-                "-o", 
-                label=f"$L = {L}$", 
-                color=colors[i],
-                markersize=6, 
-                linewidth=1.5,
-                markerfacecolor='white', 
-                markeredgewidth=1.5)
+
+        if linear_fit:
+            model_f = lambda x, a, b: a*x + b
+            p_fit, _ = curve_fit(model_f, x_vals, y_vals)
+
+            x_ran = np.linspace(np.min(x_vals), np.max(x_vals), 1000)
+            fitted_y = model_f(x_ran, *p_fit)
+
+            ax.plot(
+                x_ran, fitted_y, "--", color=colors[i]
+            )
+
+            ax.scatter(x_vals[sort_idx], y_vals[sort_idx], 
+                    label=f"$L = {L}$", 
+                    color=colors[i],
+                    s=50)
+            
+            pred_y = model_f(x_vals, *p_fit)
+            chi_sq = np.sum((pred_y - y_vals)**2)
+            ndof = len(x_vals) - len(p_fit)
+            print(f"Chi squared for L={L}: {chi_sq/ndof:.3e}")
+        else: 
+            ax.plot(x_vals[sort_idx], y_vals[sort_idx], 
+                    "-o", 
+                    label=f"$L = {L}$", 
+                    color=colors[i],
+                    markersize=6, 
+                    linewidth=1.5,
+                    markerfacecolor='white', 
+                    markeredgewidth=1.5)
 
     # label e titoli 
     ax.set_xlabel(r"Inv. log-field strength, $\left| \ln(h_0) \right|^{-1}$", fontsize=16)
-    ax.set_ylabel(r"critical longitudinal field, $\Gamma_0^c$", fontsize=16)
+    ax.set_ylabel(
+        r"cross-over region's center, $\Gamma_0^c$" if not ylabel else ylabel,
+        fontsize=16)
     
     # bordi
     ax.grid(True, which='both', linestyle='--', alpha=0.5)
@@ -220,9 +254,10 @@ def plot_critical_lines(critical_positions):
     ax.spines['right'].set_visible(False)
     
     # Legenda
-    ax.legend(title="System Size", frameon=True, shadow=False, loc='best')
+    ax.legend(title="Chain Length", frameon=True, shadow=False, loc='best')
 
     plt.tight_layout()
+
 
 #-----------------------------------------------------------------------------------------
 
